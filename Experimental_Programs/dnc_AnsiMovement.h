@@ -25,22 +25,30 @@
 //--------------------------
 
 //JPL 3/14/16 This struct will represent a player
+//object types
 #define PLAYER 0
 #define BLOCK 1
 
+//object colors
 #define RED 41
 #define GREEN 42
 #define BLUE 44
 
+//object directions
 #define NORTH 0
 #define EAST 1
 #define SOUTH 2
 #define WEST 3
+
+//object actions
+#define IDLE 0
+#define ATTACKING 1
 typedef struct
 {
-uint8_t type;  //0-player 1-block
-uint8_t color; //41-Red 42-Green 44-Blue
-uint8_t direction; //0-North 1-East 2-South 3-West
+uint8_t type;  
+uint8_t color; 
+uint8_t direction; 
+uint8_t action;
 int x_pos;
 int y_pos;
 }object;

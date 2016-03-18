@@ -53,8 +53,17 @@ disable_echo(&new_t,&old_t);
      return 1;
      }
      
+     int timer_sync = game_sync;
+     int attack_timer = 0;
+     //THIS IS COMPLETELY AD HOC BELOW
      while(killall != -1)
      {
+          if(timer_sync != game_sync && items[0].action == ATTACKING)
+          {
+          attack_timer ++;
+          timer_sync = game_sync;
+          }
+     
           if(info_controls.checked != 1)
           {
                switch(info_controls.command)
@@ -63,6 +72,8 @@ disable_echo(&new_t,&old_t);
                     {
                     items[0].y_pos -=1;
                     items[0].direction = NORTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
                     info_graphics.checked = 1;
                     break;
                     }
@@ -70,6 +81,8 @@ disable_echo(&new_t,&old_t);
                      {
                     items[0].x_pos -=1;
                     items[0].direction = WEST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
                     info_graphics.checked = 1;
                     break;
                     }
@@ -77,22 +90,73 @@ disable_echo(&new_t,&old_t);
                      {
                     items[0].y_pos +=1;
                     items[0].direction = SOUTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
                     info_graphics.checked = 1;
                     break;
                     }
                case 'd' :    
                      {
                     items[0].x_pos +=1;
-                    items[0].direction = NORTH;
+                    items[0].direction = EAST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
                     info_graphics.checked = 1;
                     break;
                     }
-               case 'W' :break;
-               case 'A' :break;
-               case 'S' :break;
-               case 'D' :break;
+               case 'W' :
+                    {
+                    items[0].y_pos -=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 'A' :    
+                     {
+                    items[0].x_pos -=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 'S' :    
+                     {
+                    items[0].y_pos +=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 'D' :    
+                     {
+                    items[0].x_pos +=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case ',' :
+                    {
+                    items[0].action = ATTACKING;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case '<' :
+                    {
+                    items[0].action = ATTACKING;
+                    info_graphics.checked = 1;
+                    break;
+                    }
                }
                info_controls.checked = 1;
+          }
+          
+          if(attack_timer >=2)
+          {
+          items[0].action = IDLE;
+          attack_timer = 0;
+          info_graphics.checked = 1;
           }
           
      usleep(1000);
@@ -190,8 +254,31 @@ char * get_object(object * obj)
      char * returnString = malloc(sizeof(char)*100);
      switch(obj->type)
      {
-     case PLAYER : sprintf(returnString,"\x1b[%dm    \x1b[B\x1b[4D    \x1b[A\x1b[m",obj->color); //TODO: Handle the directionality of the obj
-     case BLOCK : sprintf(returnString,"\x1b[%dm    \x1b[B\x1b[4D    \x1b[A\x1b[m",obj->color);
+     case PLAYER :
+          {
+           sprintf(returnString,"\x1b[%dm    \x1b[B\x1b[4D    \x1b[A\x1b[m",obj->color);
+               if(obj->action == IDLE)
+                   {
+          switch(obj->direction)
+               {
+               case NORTH: sprintf(returnString,"%s\x1b[47m  \x1b[m",returnString);break;
+               case EAST: sprintf(returnString,"%s\x1b[2B\x1b[2D\x1b[47m  \x1b[m",returnString);break;
+               case SOUTH: sprintf(returnString,"%s\x1b[B\x1b[6D\x1b[47m  \x1b[m",returnString);break;
+               case WEST: sprintf(returnString, "%s\x1b[4D\x1b[A\x1b[47m  \x1b[m",returnString);break;
+               }
+                    }
+               else if(obj->action == ATTACKING)
+                    {
+                    switch(obj->direction)
+                         {
+                         case NORTH: sprintf(returnString,"%s\x1b[47m  \x1b[2D\x1b[A  \x1b[2D\x1b[A  \x1b[m",returnString);break;
+                         case EAST: sprintf(returnString,"%s\x1b[2B\x1b[2D\x1b[47m      \x1b[m",returnString);break;
+                         case SOUTH: sprintf(returnString,"%s\x1b[B\x1b[6D\x1b[47m  \x1b[B\x1b[2D  \x1b[B\x1b[2D  \x1b[m",returnString);break;
+                         case WEST: sprintf(returnString, "%s\x1b[8D\x1b[A\x1b[47m      \x1b[m",returnString);break;
+                         }
+                    }
+               }break;
+     case BLOCK : sprintf(returnString,"\x1b[%dm    \x1b[B\x1b[4D    \x1b[A\x1b[m",obj->color);break;
      }
      return returnString;
 }
@@ -228,6 +315,7 @@ _items[0] = (object)
      .type = PLAYER,
      .color = GREEN,
      .direction = NORTH,
+     .action = IDLE,
      .x_pos = 3,
      .y_pos = 0
      };
