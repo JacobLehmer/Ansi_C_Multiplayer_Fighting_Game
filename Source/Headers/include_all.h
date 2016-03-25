@@ -11,6 +11,8 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <linux/input.h>
+#include <linux/input-event-codes.h>
 
 #include "main.h"
 #include "communications.h"
