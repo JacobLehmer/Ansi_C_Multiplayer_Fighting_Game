@@ -10,7 +10,9 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <linux/input.h>
 #include <linux/input-event-codes.h>
 
