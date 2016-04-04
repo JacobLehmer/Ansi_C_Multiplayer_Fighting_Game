@@ -6,6 +6,7 @@
 //JPL 3/14/16 - The main method, in addition to setting up the system will also be acting as the game engine
 int main(int argc, char ** argv)
 {
+srand(time(NULL));
 killall =0;
 game_sync = -1;
 signal(SIGINT,control_c_catch);
@@ -17,16 +18,17 @@ disable_echo(&new_t,&old_t);
      pthread_t ui_thread;
      
      uint8_t tps = 10;
+     int elements = 0;
      
-     object * items = malloc(sizeof(object)*6);
+     object * items = initialize_map(&elements, "map");//malloc(sizeof(object)*6);
      
-     initialize_items(items);
+     //initialize_items(items);
      
      graphics_threadinfo info_graphics =
      {
      .checked = 1,
      .player_index = 0,
-     .size = 6,
+     .size = elements,
      .in_game_objects = items
      };
      
@@ -58,7 +60,9 @@ disable_echo(&new_t,&old_t);
      int attack_timer = 0;
      int just_hit = 0;
      int movement_check = 1;
+     
      //THIS IS COMPLETELY AD HOC BELOW AND NOT MEANT TO BE USED IN FURTHER PROJECTS MORE THOUGHT NEEDS TO BE PUT INTO THE SYSTEM HERE
+     //So: TODO: Make a better operating system here
      while(killall != -1)
      {
           if(timer_sync != game_sync && items[0].action == ATTACKING)
@@ -72,12 +76,12 @@ disable_echo(&new_t,&old_t);
           movement_check =1;
                switch(info_controls.command)
                {
-               case 'w' :
+               case 0x11 :
                     {
                     
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                     {
-                    if(items[i].health <= DEAD) continue;
+                    if(items[i].health == DEAD) continue;
                     movement_check *= (((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
                     }
                     if(movement_check == 1)items[0].y_pos -=1;
@@ -89,11 +93,11 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case 'a' :    
+               case 0x22 :    
                      {
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                     {
-                    if(items[i].health <= DEAD) continue;
+                    if(items[i].health == DEAD) continue;
                     movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
                     }
                     if(movement_check == 1)items[0].x_pos -=1;
@@ -104,11 +108,11 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case 's' :    
+               case 0x44 :    
                      {
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                     {
-                    if(items[i].health <= DEAD) continue;
+                    if(items[i].health == DEAD) continue;
                     movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
                     }
                     if(movement_check == 1)items[0].y_pos +=1;
@@ -119,11 +123,11 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case 'd' :    
+               case 0x88 :    
                      {
-                    for(int i =1; i< 6;i++)
+                    for(int i =1; i< elements;i++)
                     {
-                    if(items[i].health <= DEAD) continue;
+                    if(items[i].health == DEAD) continue;
                     movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
                     }
                     if(movement_check == 1)items[0].x_pos +=1;
@@ -134,11 +138,11 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case 'W' :
+               case 0x01 :
                     {
-                    for(int i =1; i< 6;i++)
+                    for(int i =1; i< elements;i++)
                     {
-                    if(items[i].health <= DEAD) continue;
+                    if(items[i].health == DEAD) continue;
                     movement_check *=(((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
                     }
                     if(movement_check == 1)items[0].y_pos -=1;
@@ -148,11 +152,11 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case 'A' :    
+               case 0x02 :    
                      {
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                     {
-                    if(items[i].health <= DEAD) continue;
+                    if(items[i].health == DEAD) continue;
                     movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
                     }
                     if(movement_check == 1)items[0].x_pos -=1;
@@ -162,11 +166,11 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case 'S' :    
+               case 0x04 :    
                      {
-                    for(int i =1; i< 6;i++)
+                    for(int i =1; i< elements;i++)
                     {
-                    if(items[i].health <= DEAD) continue;
+                    if(items[i].health == DEAD) continue;
                     movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
                     }
                     if(movement_check == 1)items[0].y_pos +=1;
@@ -176,11 +180,11 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case 'D' :    
+               case 0x08 :    
                      {
-                    for(int i =1; i< 6;i++)
+                    for(int i =1; i< elements;i++)
                     {
-                    if(items[i].health <= DEAD) continue; 
+                    if(items[i].health == DEAD) continue; 
                     movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
                     }
                     if(movement_check == 1)items[0].x_pos +=1;
@@ -190,22 +194,49 @@ disable_echo(&new_t,&old_t);
                     info_graphics.checked = 1;
                     break;
                     }
-               case ',' :
-                    {
-                    items[0].action = ATTACKING;
+               case 0x10 :
+                    {                    
+                    items[0].direction = NORTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;   
+                    };break;
+               case 0x20 :
+                    {                    
+                    items[0].direction = WEST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
                     info_graphics.checked = 1;
-                    break;
-                    }
-               case '<' :
-                    {
-                    items[0].action = ATTACKING;
+                         
+                    };break;
+               case 0x40 :
+                    {                    
+                    items[0].direction = SOUTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
                     info_graphics.checked = 1;
-                    break;
-                    }
+                    };break;
+               case 0x80 :
+                    {                    
+                    items[0].direction = EAST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    };break;
                }
+
                info_controls.checked = 1;
           }
           
+          if(info_controls.attack ==0x01)
+               {
+               items[0].action = ATTACKING;
+               info_graphics.checked = 1;
+               }          
           
           if(attack_timer >=2)
           {
@@ -222,24 +253,24 @@ disable_echo(&new_t,&old_t);
                {
                 case NORTH:
                     {
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                          {
                          if(items[i].health <= DEAD) continue;
                          if(((items[i].y_pos - (items[0].y_pos-2))*(items[i].y_pos - (items[0].y_pos-2)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) <= 2)
                               {
-                              if(items[i].health < items[0].damage) items[i].health =0;
+                              if(items[i].health < items[0].damage) items[i].health =DEAD;
                               else items[i].health -= items[0].damage; 
                               }
                          }
                     };break; 
                case EAST:
                     {
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                          {
                          if(items[i].health <= DEAD) continue;
                          if(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+2))*(items[i].x_pos - (items[0].x_pos+2))) <= 2)
                               {
-                              if(items[i].health < items[0].damage) items[i].health =0;
+                              if(items[i].health < items[0].damage) items[i].health =DEAD;
                               else items[i].health -= items[0].damage; 
                               }
                          }
@@ -247,24 +278,24 @@ disable_echo(&new_t,&old_t);
                
                case SOUTH:
                     {
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                          {
                          if(items[i].health <= DEAD) continue;
                          if(((items[i].y_pos - (items[0].y_pos+2))*(items[i].y_pos - (items[0].y_pos+2)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) <=2)
                               {
-                              if(items[i].health < items[0].damage) items[i].health =0;
+                              if(items[i].health < items[0].damage) items[i].health =DEAD;
                               else items[i].health -= items[0].damage; 
                               }
                          }
                     };break;
                case WEST:
                     {
-                    for(int i =1; i< 6;i++) 
+                    for(int i =1; i< elements;i++) 
                          {
                          if(items[i].health <= DEAD) continue;
                          if(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-2))*(items[i].x_pos - (items[0].x_pos-2))) <= 2)
                               {
-                              if(items[i].health < items[0].damage) items[i].health =0;
+                              if(items[i].health < items[0].damage) items[i].health =DEAD;
                               else items[i].health -= items[0].damage; 
                               }
                          }
@@ -276,6 +307,9 @@ disable_echo(&new_t,&old_t);
           
      usleep(1000);
      }
+     
+     //Below this is fine
+     
      free(items);
 
 reenable_echo(&old_t);
@@ -335,7 +369,7 @@ _items[1] = (object)
      .color = BLUE,
      .x_pos = 10,
      .y_pos = 0,
-     .health = 100
+     .health = INVINCIBLE
      };
      
 _items[2] = (object)
@@ -353,7 +387,7 @@ _items[3] = (object)
      .color = BLUE,
      .x_pos = 0,
      .y_pos = 10,
-     .health = 100
+     .health = INVINCIBLE
      };
      
 _items[4] = (object)
@@ -362,7 +396,7 @@ _items[4] = (object)
      .color = BLUE,
      .x_pos = 0,
      .y_pos = -10,
-     .health = 100
+     .health = INVINCIBLE
      };
 _items[5] = (object)
      {
@@ -370,9 +404,142 @@ _items[5] = (object)
      .color = BLUE,
      .x_pos = 0,
      .y_pos = 0,
-     .health = 100
+     .health = INVINCIBLE
      };
 
+}
+
+//=========-------------
+//JPL 4/4/16 This is the map initializer 
+//@ represents a player spawn point
+//+ represents 0,0
+//* represents an invincible blue wall
+// a space represents a space
+object * initialize_map(int * size, char * filename)
+{
+     int map_fd = open(filename, O_RDWR);
+     int loop_size = 0;
+     int start_stream_position = 0;
+     int startx = 0;
+     int starty = 0;
+     int lines = 0;
+     int elements_since_newline = 0;
+     char element = 0x00;
+     int object_at = 1;
+     int location_at = 0;
+     (*size)=1;
+     int starting_locations = 0;// this will correspond to the number of starting locatons stored on two parallel arrays which will be declared after this value is found
+     
+     object * return_ptr;
+     if(map_fd == -1) 
+     {
+          printf("Failure to open file\n");  
+          killall = -1;
+          return NULL;
+     }
+     lseek(map_fd,0,SEEK_END);
+     loop_size = lseek(map_fd,0,SEEK_CUR);
+     lseek(map_fd,0,SEEK_SET);
+     
+     for(int i =0;i< loop_size;i++)
+     {
+          read(map_fd,&element,1);
+          if(element == '+')
+          {
+          (*size) ++;
+          startx = elements_since_newline;
+          starty = lines;
+          start_stream_position = lseek(map_fd,0,SEEK_CUR);
+          elements_since_newline++;
+          }
+          else if(element == '\n')
+          {
+          lines++;
+          elements_since_newline = 0;
+          }
+          else if(element == '*')
+          {
+          (*size)++;
+          elements_since_newline++;
+          }
+          else if(element == ' ')
+          {
+          elements_since_newline++;
+          }
+          else if(element == '@')
+          {
+          starting_locations ++;
+          elements_since_newline++;
+          }
+     }
+     
+     lines = 0;
+     elements_since_newline = 0;
+     element = 0x00;
+     
+     return_ptr = malloc(sizeof(object)*(*size));
+     
+     int start_locations_x[starting_locations];
+     int start_locations_y[starting_locations];
+     
+
+     
+     lseek(map_fd,0,SEEK_SET);
+     
+     for(int i =0;i< loop_size;i++)
+     {
+          read(map_fd,&element,1);
+          if(element == '+')
+          {
+          elements_since_newline++;
+          }
+          else if(element == '@')
+          {
+          start_locations_x[location_at] = 2*(elements_since_newline - startx);
+          start_locations_y[location_at] = 2*(lines - starty);
+          location_at ++;
+          elements_since_newline++;
+          }
+          else if(element == '\n')
+          {
+          lines++;
+          elements_since_newline = 0;
+          }
+          else if(element == '*')
+          {
+          return_ptr[object_at] = (object)
+          {
+          .type = BLOCK,
+          .color = BLUE,
+          .x_pos = 2*(elements_since_newline - startx),
+          .y_pos = 2*(lines - starty),
+          .health = INVINCIBLE
+          };
+          object_at ++;
+          elements_since_newline++;
+          }
+          else if(element == ' ')
+          {
+          elements_since_newline++;
+          }
+     }
+     int guess = rand()%starting_locations;
+     //TODO Figure out how to have multiple players temp_here
+     return_ptr[0] = (object)
+     {
+     .type = PLAYER,
+     .color = GREEN,
+     .direction = NORTH,
+     .action = IDLE,
+     .x_pos = start_locations_x[guess],
+     .y_pos = start_locations_y[guess],
+     .health = 100,
+     .damage = 50
+     };
+     
+     close(map_fd);
+     return return_ptr;
+     
 }
 /*
 //=========-------------

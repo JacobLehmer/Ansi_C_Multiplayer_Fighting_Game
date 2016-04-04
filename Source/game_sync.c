@@ -1,4 +1,4 @@
-//Jacob Paul Lehmer (JPL) /3/18/16
+//Jacob Paul Lehmer (JPL) /3/18/16                                                                             
 //This is the file for the syncronization of the game
 
 #include "Headers/include_all.h"

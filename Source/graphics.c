@@ -47,7 +47,7 @@ int rel_y = 0;
 printf("\x1b[2J");
      for(int i =0; i < _info->size; i++)
      {
-     if(_info->in_game_objects[i].health <= DEAD) continue;
+     if(_info->in_game_objects[i].health == DEAD) continue;
      rel_x = (ref_x - _info->in_game_objects[i].x_pos);
      rel_y = (ref_y - _info->in_game_objects[i].y_pos);
      if((rel_x*rel_x + rel_y*rel_y) <= 1000)

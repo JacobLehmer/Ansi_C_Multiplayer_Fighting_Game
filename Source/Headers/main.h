@@ -9,6 +9,7 @@
 
 //JPL 3/14/16 This struct will represent any game entity
 #define DEAD 0
+#define INVINCIBLE -1
 
 //object types
 #define PLAYER 0
@@ -34,7 +35,7 @@ uint8_t type;
 uint8_t color; 
 uint8_t direction; 
 uint8_t action;
-uint8_t health;
+int health;
 uint8_t damage;
 int x_pos;
 int y_pos;
@@ -87,9 +88,11 @@ object * in_game_objects;
 
 typedef struct
 {
-char command;
+unsigned char command;
+unsigned char attack;
 int checked; //same as for the graphics info
 }user_controls;
+
 
 
 //--------------------------
@@ -133,6 +136,11 @@ void reenable_echo(struct termios * old_t);
 //possibly to read from a map file of some sort,
 //or random generation
 void initialize_items(object * _items);
+
+//JPL 4/4/16 This will initalize all of the elements in the map file 
+//pass in an int address corresponding to the size of the map
+//The map file is going to be a very simple text file corresponding to a * being an invincible blue block and a @ being the origin of the map
+object * initialize_map(int * size, char * filename);
 
 
 

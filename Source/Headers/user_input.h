@@ -4,6 +4,8 @@
 #ifndef user_H
 #define user_H
 
+#define SPACE_MASK 0x0F
+#define SHIFT_MASK 0xF0
 //JPL 3/14/16 This is the control thread for reading user input
 //TODO: do not use the stdin, use the actual device instead
 //NOTE: as of 3/18/16 This is reading stdin and using the character values to obtain functionality

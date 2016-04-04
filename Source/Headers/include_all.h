@@ -15,6 +15,8 @@
 #include <sys/types.h>
 #include <linux/input.h>
 #include <linux/input-event-codes.h>
+#include <poll.h>
+#include <time.h>
 
 #include "main.h"
 #include "communications.h"
