@@ -10,9 +10,10 @@ srand(time(NULL));
 killall =0;
 game_sync = -1;
 signal(SIGINT,control_c_catch);
+
 struct termios new_t,old_t;
 disable_echo(&new_t,&old_t);
-     
+
      pthread_t timer_thread;
      pthread_t graphics_thread;
      pthread_t ui_thread;
@@ -35,7 +36,8 @@ disable_echo(&new_t,&old_t);
      user_controls info_controls =
      {
      .checked = 1,
-     .command = ' '
+     .command = ' ',
+     .event_filename = find_used_device()
      };
      
      if(pthread_create(&timer_thread,NULL,game_timer,(void*)&tps ) <0)
@@ -702,6 +704,87 @@ for(int i = 0; i< array_size;i++)
      }
 return (void *) return_pointer;
 }
+
+//=========-------------
+//JPL 4/13/16 This is the Method that will find which of the dev nodes that will correspond to the currently used device node
+char * find_used_device()
+{
+     printf("Press space to continue\n");
+
+     struct pollfd * event_files;
+     char * return_file = malloc(sizeof(char)*20);
+     
+
+     struct dirent **namelist;
+     
+     char * file = malloc(sizeof(char)*20);
+     
+     int n;
+     n = scandir("/dev/input", &namelist, compare_entries, alphasort);
+     
+     event_files = malloc(sizeof(struct pollfd)*n);
+     
+     for(int i =0;i< n;i++)
+     {
+          sprintf(file, "/dev/input/%s",namelist[i]->d_name );
+          event_files[i].fd = open(file,O_RDWR);
+          event_files[i].events = POLLIN;
+     }
+     
+     int while_loop_break = 0;
+     struct input_event kbdev;
+     
+
+     while(while_loop_break != -1)
+     {
+          for(int i = 0;i< n;i++)
+          {
+               if(poll(&(event_files[i]),1,5))
+               {
+                    read(event_files[i].fd, &kbdev,sizeof(kbdev));
+                    if(kbdev.type != EV_KEY) continue;
+                    if(kbdev.code == KEY_SPACE)
+                         {
+                         sprintf(return_file,"/dev/input/%s",namelist[i]->d_name);
+                         while_loop_break = -1;
+                         break;
+                         }
+               }
+          }
+     }
+     
+     for(int i =0;i<n;i++)
+     {
+          free(namelist[i]);
+          close(event_files[i].fd);
+     }
+     
+     free(namelist);
+     free(event_files);
+     
+
+     /*Code example for the usage of the scandir function
+      if (n < 0)
+          perror("scandir");
+      else {
+          while (n--) {
+              printf("%s\n", namelist[n]->d_name);
+              free(namelist[n]);
+          }
+          free(namelist);
+      }
+      */
+     
+     printf("%s",return_file);
+     return return_file;
+}
+//=========-------------
+//JPL 4/15/16 This is a function that will compare the directory entry that is passed into it
+int compare_entries(const struct dirent * to_compare)
+{
+     return (to_compare->d_name[0] == 'e') && (to_compare->d_name[1] == 'v') && (to_compare->d_name[2] == 'e');
+}
+
 /*
 //=========-------------
 //JPL 3/24/16 This is the insert in order function

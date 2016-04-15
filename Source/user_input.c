@@ -7,8 +7,10 @@
 //JPL 3/16/16 - This is the thread handler for the user controls
 void * handle_user_controls(void * _thread_info)
 {
+user_controls * control_info = (user_controls *) _thread_info;
 int kbd_fd;
-kbd_fd = open("/dev/input/event0",O_RDWR);
+kbd_fd = open(control_info->event_filename,O_RDWR);
+
 struct input_event kbdev;
 struct pollfd rfds =
 {
@@ -23,7 +25,7 @@ unsigned char attack_code = 0x00;
 
 int is_shift = 0;
 int is_space = 0;
-user_controls * control_info = (user_controls *) _thread_info;
+
 while(killall != -1)
      {
           retval = poll(&rfds,1,timeout_msecs);
@@ -117,7 +119,6 @@ while(killall != -1)
                 control_info->command = control_code; 
                 control_info->checked = 0;    
                }
-               //TODO get attack to work again
      }
      close(kbd_fd);
 }

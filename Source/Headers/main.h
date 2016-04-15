@@ -88,6 +88,7 @@ object * in_game_objects;
 
 typedef struct
 {
+char * event_filename;
 unsigned char command;
 unsigned char attack;
 int checked; //same as for the graphics info
@@ -142,6 +143,12 @@ void initialize_items(object * _items);
 //The map file is going to be a very simple text file corresponding to a * being an invincible blue block and a @ being the origin of the map
 object * initialize_map(int * size, char * filename);
 
+//JPL 4/13/16 This is the method that will wait for input from any of the file descriptors 
+//Returning the filepath of the device
+char * find_used_device();
+
+//JPL 4/15/16 This is a function that will compare the possible strings for the values seeked
+int compare_entries(const struct dirent * to_compare); 
 
 
 #endif

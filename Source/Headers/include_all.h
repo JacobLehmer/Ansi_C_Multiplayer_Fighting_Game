@@ -17,6 +17,8 @@
 #include <linux/input-event-codes.h>
 #include <poll.h>
 #include <time.h>
+#include <dirent.h>
+#include <string.h>
 
 #include "main.h"
 #include "communications.h"
