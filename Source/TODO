@@ -1,0 +1,49 @@
+This is a to do file for the system
+Need to add in lobby functionality
+Need to add a hud
+
+Main menu ->   Host
+               Connect
+Forget about the menu
+For simplicity make the command line args set up wether it is a server or a client
+               
+client struct 
+     needed connection info
+     index for the player
+     
+need a screen design for the lobby
+
+need to decide if moving things around in the various source files makes any sense at all
+
+thoughts about the packets
+     so what is needed for the server to send of initialization
+     needs to send the initial array of the elements to the clients
+     also needs to assign an index for the piece that it controls
+     
+     operational assumptions, the blocks are indestructible this is needed for the game to function without copious message passing
+     needs a host client which will have the same behavior as the connected clients but without the actual connectedness
+     
+     needs to have the initial setup happen from the command line
+     
+     so in order for all of the system to function, 
+          The clients cannot update until they have recived a message from the server telling them to update their character 
+          The clients need to pass a direction and action to the server
+
+     ||Order of events for server|| The server is another thread
+     1) host needs to be defined with the number of clients that will be playing
+     2) the host will then wait until all of the clients have connected to the system
+     3) while the host is waiting for all of the clients to connect it will build the map, with the number of players that it was given at the start of the system
+     4) when all of the players have connected they will be transferred a startup_data_packet
+          startup_data_packet
+          int player_index
+          int number_of_elements
+
+     5) The client will then be sent a copy of the map     
+     6) This startup packet will need to be turned into the proper struct for the array
+     7) once all of the clients send a location, direction, and action the timer will start
+     8) The server will be responsible for the timer, it will send out a ping on every time step
+     9) It will process the collision detections
+         
+     
+     
+     

@@ -94,13 +94,12 @@ unsigned char attack;
 int checked; //same as for the graphics info
 }user_controls;
 
-typedef struct 
-{
-int port;
-char * map_filename;
 
-} communication_controls;
 
+
+//--------------------------
+//This is an object packet for sending across the lines
+//--------------------------
 typedef struct
 {
 object _toSend;
@@ -115,7 +114,29 @@ typedef struct
 {
 int number_of_elements;
 int player_index;
+int other_players;
 }startup_packet;
+
+
+//--------------------------
+//This is the settings struct responsible for keeping the settings that are parsed initially from the command line
+//Not all of these settings will be filled for each of the clients or servers
+//--------------------------
+typedef struct 
+{
+int is_host;
+int port;
+int number_of_players;
+char * map_filename;
+char * server_address;
+}settings;
+
+
+typedef struct 
+{
+settings server_settings;
+
+}communication_controls;
 
 //--------------------------
 //Utility Prototypes
@@ -163,7 +184,7 @@ void initialize_items(object * _items);
 //JPL 4/4/16 This will initalize all of the elements in the map file 
 //pass in an int address corresponding to the size of the map
 //The map file is going to be a very simple text file corresponding to a * being an invincible blue block and a @ being the origin of the map
-object * initialize_map(int * size, char * filename);
+object * initialize_map(int * size, char * filename ,int number_of_players);
 
 //JPL 4/13/16 This is the method that will wait for input from any of the file descriptors 
 //Returning the filepath of the device
@@ -174,5 +195,15 @@ int compare_entries(const struct dirent * to_compare);
 
 //JPL 4/18/16 This is going to be the method that will check the movement for any collisions
 int update_player(unsigned char direction,int index_of_player ,object * items, int num_elements);
+
+//JPL 4/20/16 This will parse all of the command line options in order to create the settings struct
+//-h host
+//-p=#### port=number 
+//-u=# users=number
+//-m="PATH" -map=path
+
+//-c client
+//-a="Address"
+settings parse_command_line_options(int argc, char ** argv);
 
 #endif

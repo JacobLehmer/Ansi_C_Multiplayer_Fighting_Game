@@ -6,6 +6,7 @@
 //JPL 3/14/16 - The main method, in addition to setting up the system will also be acting as the game engine
 int main(int argc, char ** argv)
 {
+
 srand(time(NULL));
 killall =0;
 game_sync = -1;
@@ -15,16 +16,30 @@ struct termios new_t,old_t;
 disable_echo(&new_t,&old_t);
      
      //TODO need to add another thread for communication
+     //TODO Need to add in the functionality to make the host and client different
      //needs to decide connection or host before moving on
+     ////Assuming host and proceeding with moving things around and building code
+     
+     settings game_settings = parse_command_line_options(argc,argv);
+     
+     //temp
+     pthread_t communication_thread;
+     //temp
+     
      pthread_t timer_thread;
      pthread_t graphics_thread;
      pthread_t ui_thread;
      
      uint8_t tps = 10; //goes to communications
-     int elements = 0;
+
      
-     object * items = initialize_map(&elements, "map"); //goes to communications
+     //object * items = initialize_map(&elements, "map"); //goes to communications, or keep like this and have the loading
      
+     //communication_controls info_communicaiton =
+     //{
+     //.port = 0;
+     //.map_filename = "map";
+     //};
      
      graphics_threadinfo info_graphics =
      {
@@ -43,38 +58,57 @@ disable_echo(&new_t,&old_t);
      
      signal(SIGINT,control_c_catch);
      
+     //temp
+     if(pthread_create(&communication_thread,NULL, server_controls,(void*)&game_settings) < 0)
+     {
+     perror("Server Thread Creation Failure");
+     return 1;
+     }
+     //temp
+     
+     
      if(pthread_create(&timer_thread,NULL,game_timer,(void*)&tps ) <0)
      {
-     perror("Thread Creation Failure");
+     perror("Timer Thread Creation Failure");
      return 1;
      }
      
      if(pthread_create(&graphics_thread,NULL,graphics_handler,(void*)&info_graphics) < 0)
      {
-     perror("Thread Creation Failure");
+     perror("Graphics Thread Creation Failure");
      return 1;
      }
      
      if(pthread_create(&ui_thread,NULL,handle_user_controls,(void*)&info_controls) < 0)
      {
-     perror("Thread Creation Failure");
+     perror("User Control Thread Creation Failure");
      return 1;
      }
+     
+     //TODO contain this in arbitrary client protocol
+     int socket = -1;
+     if(game_settings.is_host == 0)
+     {
+          socket = connect_to_server(game_settings.server_address, game_settings.port);
+          if(socket == -1)
+          {
+               perror("Connection Error");
+               return 1;
+          } 
+     }
+     
+     startup_packet game_info = get_startup_packet(game_settings.is_host, socket);
+     object * items = get_object_list_from_server(game_settings.is_host, socket);
      
      int timer_sync = game_sync;
      int attack_timer = 0;
      int just_hit = 0;
      int movement_check = 1;
      
-     //=========-------------
-     //=========-------------
-     //TODO THIS NEEDS TO BE ASSIGNED BY SERVER
-     //=========-------------
-     //=========-------------
-     int player_index = 0;
+     int elements = game_info.number_of_elements;
+
+     int player_index = game_info.player_index;
      
-     //THIS IS COMPLETELY AD HOC BELOW AND NOT MEANT TO BE USED IN FURTHER PROJECTS MORE THOUGHT NEEDS TO BE PUT INTO THE SYSTEM HERE
-     //So: TODO: Make a better operating system here
      while(killall != -1)
      {
           if(timer_sync != game_sync && items[0].action == ATTACKING)
@@ -104,7 +138,11 @@ disable_echo(&new_t,&old_t);
           info_graphics.checked = 1;
           }
           
+          send_player_state(game_settings.is_host,items[player_index]);
+          update_player_locations(game_settings.is_host,socket,items,game_info);
+          
           //TODO this part needs to be done by the server
+          
           if(attack_timer ==1 && just_hit == 0)
           {
           just_hit = 1;
@@ -274,7 +312,7 @@ _items[5] = (object)
 //+ represents 0,0
 //* represents an invincible blue wall
 // a space represents a space
-object * initialize_map(int * size, char * filename)
+object * initialize_map(int * size, char * filename, int number_of_players)
 {
      int map_fd = open(filename, O_RDWR);
      int loop_size = 0;
@@ -284,9 +322,9 @@ object * initialize_map(int * size, char * filename)
      int lines = 0;
      int elements_since_newline = 0;
      char element = 0x00;
-     int object_at = 1;
+     int object_at = number_of_players;
      int location_at = 0;
-     (*size)=1;
+     (*size)=number_of_players;
      int starting_locations = 0;// this will correspond to the number of starting locatons stored on two parallel arrays which will be declared after this value is found
      
      object * return_ptr;
@@ -382,9 +420,12 @@ object * initialize_map(int * size, char * filename)
           elements_since_newline++;
           }
      }
-     int guess = rand()%starting_locations;
-     //TODO Figure out how to have multiple players temp_here
-     return_ptr[0] = (object)
+     int guess = 0;
+     for(int i =0;i< number_of_players;i++)
+     {
+     guess = rand()%starting_locations;
+
+     return_ptr[i] = (object)
      {
      .type = PLAYER,
      .color = GREEN,
@@ -395,7 +436,7 @@ object * initialize_map(int * size, char * filename)
      .health = 100,
      .damage = 50
      };
-     
+     }
      close(map_fd);
      return return_ptr;
      
@@ -679,6 +720,24 @@ int update_player(unsigned char direction, int index_of_player,object * items, i
      
 }
 
+//=========-------------
+//JPL 4/20/16 This will parse the needed options from the command line
+//=========-------------
+settings parse_command_line_options(int argc, char ** argv)
+{
+     settings inital_settings;
+     //for(int i =1;i< argc;i++)
+     //{
+     
+     //}
+     initial_settings.is_host = 1;
+     initial_settings.port = -1;
+     initial_settings.number_of_players = 1;
+     initial_settings.map_filename = "map";
+     
+     return intitial_settings;
+}
+
 /*
 //=========-------------
 //JPL 3/24/16 This is the insert in order function
@@ -698,167 +757,3 @@ for(int i =0; i < (current_array_size - insert_position); i++)
      return array;
 }*/
 
-//=========-------------
-//=========-------------
-//=========-------------
-//OLD CODE IF NEW STUFF NO WORKY 
-//=========-------------
-//=========-------------
-//=========-------------
-/*
- movement_check =1;
-               switch(info_controls.command)
-               {
-               case 0x11 :
-                    {
-                    
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *= (((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos -=1;
-                    
-                    items[0].direction = NORTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x22 :    
-                     {
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos -=1;
-                    items[0].direction = WEST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x44 :    
-                     {
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos +=1;
-                    items[0].direction = SOUTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x88 :    
-                     {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos +=1;
-                    items[0].direction = EAST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x01 :
-                    {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos -=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x02 :    
-                     {
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos -=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x04 :    
-                     {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos +=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x08 :    
-                     {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue; 
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos +=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x10 :
-                    {                    
-                    items[0].direction = NORTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;   
-                    };break;
-               case 0x20 :
-                    {                    
-                    items[0].direction = WEST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                         
-                    };break;
-               case 0x40 :
-                    {                    
-                    items[0].direction = SOUTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    };break;
-               case 0x80 :
-                    {                    
-                    items[0].direction = EAST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    };break;
-               }
-*/
