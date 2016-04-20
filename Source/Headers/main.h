@@ -21,10 +21,10 @@
 #define BLUE 44
 
 //object directions
-#define NORTH 0
-#define EAST 1
-#define SOUTH 2
-#define WEST 3
+#define NORTH 0x10
+#define EAST 0x80
+#define SOUTH 0x40
+#define WEST 0x20
 
 //object actions
 #define IDLE 0
@@ -94,7 +94,28 @@ unsigned char attack;
 int checked; //same as for the graphics info
 }user_controls;
 
+typedef struct 
+{
+int port;
+char * map_filename;
 
+} communication_controls;
+
+typedef struct
+{
+object _toSend;
+int index;
+} object_packet;
+
+
+//--------------------------
+//This is for starting the operations on the system
+//--------------------------
+typedef struct 
+{
+int number_of_elements;
+int player_index;
+}startup_packet;
 
 //--------------------------
 //Utility Prototypes
@@ -137,6 +158,7 @@ void reenable_echo(struct termios * old_t);
 //possibly to read from a map file of some sort,
 //or random generation
 void initialize_items(object * _items);
+//Replaced by the map creation
 
 //JPL 4/4/16 This will initalize all of the elements in the map file 
 //pass in an int address corresponding to the size of the map
@@ -150,5 +172,7 @@ char * find_used_device();
 //JPL 4/15/16 This is a function that will compare the possible strings for the values seeked
 int compare_entries(const struct dirent * to_compare); 
 
+//JPL 4/18/16 This is going to be the method that will check the movement for any collisions
+int update_player(unsigned char direction,int index_of_player ,object * items, int num_elements);
 
 #endif

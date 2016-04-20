@@ -9,21 +9,22 @@ int main(int argc, char ** argv)
 srand(time(NULL));
 killall =0;
 game_sync = -1;
-signal(SIGINT,control_c_catch);
+
 
 struct termios new_t,old_t;
 disable_echo(&new_t,&old_t);
-
+     
+     //TODO need to add another thread for communication
+     //needs to decide connection or host before moving on
      pthread_t timer_thread;
      pthread_t graphics_thread;
      pthread_t ui_thread;
      
-     uint8_t tps = 10;
+     uint8_t tps = 10; //goes to communications
      int elements = 0;
      
-     object * items = initialize_map(&elements, "map");//malloc(sizeof(object)*6);
+     object * items = initialize_map(&elements, "map"); //goes to communications
      
-     //initialize_items(items);
      
      graphics_threadinfo info_graphics =
      {
@@ -39,6 +40,8 @@ disable_echo(&new_t,&old_t);
      .command = ' ',
      .event_filename = find_used_device()
      };
+     
+     signal(SIGINT,control_c_catch);
      
      if(pthread_create(&timer_thread,NULL,game_timer,(void*)&tps ) <0)
      {
@@ -63,6 +66,13 @@ disable_echo(&new_t,&old_t);
      int just_hit = 0;
      int movement_check = 1;
      
+     //=========-------------
+     //=========-------------
+     //TODO THIS NEEDS TO BE ASSIGNED BY SERVER
+     //=========-------------
+     //=========-------------
+     int player_index = 0;
+     
      //THIS IS COMPLETELY AD HOC BELOW AND NOT MEANT TO BE USED IN FURTHER PROJECTS MORE THOUGHT NEEDS TO BE PUT INTO THE SYSTEM HERE
      //So: TODO: Make a better operating system here
      while(killall != -1)
@@ -75,162 +85,8 @@ disable_echo(&new_t,&old_t);
      
           if(info_controls.checked != 1)
           {
-          movement_check =1;
-               switch(info_controls.command)
-               {
-               case 0x11 :
-                    {
-                    
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *= (((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos -=1;
-                    
-                    items[0].direction = NORTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x22 :    
-                     {
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos -=1;
-                    items[0].direction = WEST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x44 :    
-                     {
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos +=1;
-                    items[0].direction = SOUTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x88 :    
-                     {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos +=1;
-                    items[0].direction = EAST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x01 :
-                    {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos -=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x02 :    
-                     {
-                    for(int i =1; i< elements;i++) 
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos -=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x04 :    
-                     {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue;
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
-                    }
-                    if(movement_check == 1)items[0].y_pos +=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x08 :    
-                     {
-                    for(int i =1; i< elements;i++)
-                    {
-                    if(items[i].health == DEAD) continue; 
-                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
-                    }
-                    if(movement_check == 1)items[0].x_pos +=1;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    break;
-                    }
-               case 0x10 :
-                    {                    
-                    items[0].direction = NORTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;   
-                    };break;
-               case 0x20 :
-                    {                    
-                    items[0].direction = WEST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                         
-                    };break;
-               case 0x40 :
-                    {                    
-                    items[0].direction = SOUTH;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    };break;
-               case 0x80 :
-                    {                    
-                    items[0].direction = EAST;
-                    items[0].action = IDLE;
-                    attack_timer = 0;
-                    just_hit = 0;
-                    info_graphics.checked = 1;
-                    };break;
-               }
-
+               update_player(info_controls.command,player_index, items,elements);  
+               info_graphics.checked = 1;   
                info_controls.checked = 1;
           }
           
@@ -248,6 +104,7 @@ disable_echo(&new_t,&old_t);
           info_graphics.checked = 1;
           }
           
+          //TODO this part needs to be done by the server
           if(attack_timer ==1 && just_hit == 0)
           {
           just_hit = 1;
@@ -785,6 +642,43 @@ int compare_entries(const struct dirent * to_compare)
      return (to_compare->d_name[0] == 'e') && (to_compare->d_name[1] == 'v') && (to_compare->d_name[2] == 'e');
 }
 
+//=========-------------
+//JPL 4/18/16 This will check the list of entities for any of the possible movement confliction and also move the piece if it is capable of doing so
+//NOTE: This will most likely be the finished method because having a different method is going to require far too much rethinking of the system
+//The next game will have a more sophisticated object storage system and thusly a more better collision detection
+int update_player(unsigned char direction, int index_of_player,object * items, int num_elements)
+{
+     int movement_check_value = 1;
+     int mv_x = items[index_of_player].x_pos;
+     int mv_y = items[index_of_player].y_pos;
+     
+     if((direction & 0x0f) > 0)
+     {
+     mv_y = mv_y - (direction & 0x01) + ((direction & 0x04)>>2);
+     mv_x = mv_x - ((direction & 0x02)>>1) + ((direction & 0x08)>>3);
+     
+     for(int i =0;i< num_elements;i++)
+     {
+     if(items[i].health == DEAD || i == index_of_player) continue;
+     movement_check_value *= (((items[i].y_pos - (mv_y))*(items[i].y_pos - (mv_y)) + (items[i].x_pos - (mv_x))*(items[i].x_pos - (mv_x))) > 2);
+     if(movement_check_value == 0) break;
+     }
+     
+     }
+     
+     if(movement_check_value)
+     {
+     if((direction & 0xf0) > 0) items[index_of_player].direction = (direction & 0xf0);
+     items[index_of_player].x_pos = mv_x;
+     items[index_of_player].y_pos = mv_y;
+     
+     }
+     items[index_of_player].action = IDLE;
+     
+     return movement_check_value;
+     
+}
+
 /*
 //=========-------------
 //JPL 3/24/16 This is the insert in order function
@@ -803,3 +697,168 @@ for(int i =0; i < (current_array_size - insert_position); i++)
      array[insert_position] = value;
      return array;
 }*/
+
+//=========-------------
+//=========-------------
+//=========-------------
+//OLD CODE IF NEW STUFF NO WORKY 
+//=========-------------
+//=========-------------
+//=========-------------
+/*
+ movement_check =1;
+               switch(info_controls.command)
+               {
+               case 0x11 :
+                    {
+                    
+                    for(int i =1; i< elements;i++) 
+                    {
+                    if(items[i].health == DEAD) continue;
+                    movement_check *= (((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
+                    }
+                    if(movement_check == 1)items[0].y_pos -=1;
+                    
+                    items[0].direction = NORTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x22 :    
+                     {
+                    for(int i =1; i< elements;i++) 
+                    {
+                    if(items[i].health == DEAD) continue;
+                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
+                    }
+                    if(movement_check == 1)items[0].x_pos -=1;
+                    items[0].direction = WEST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x44 :    
+                     {
+                    for(int i =1; i< elements;i++) 
+                    {
+                    if(items[i].health == DEAD) continue;
+                    movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
+                    }
+                    if(movement_check == 1)items[0].y_pos +=1;
+                    items[0].direction = SOUTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x88 :    
+                     {
+                    for(int i =1; i< elements;i++)
+                    {
+                    if(items[i].health == DEAD) continue;
+                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
+                    }
+                    if(movement_check == 1)items[0].x_pos +=1;
+                    items[0].direction = EAST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x01 :
+                    {
+                    for(int i =1; i< elements;i++)
+                    {
+                    if(items[i].health == DEAD) continue;
+                    movement_check *=(((items[i].y_pos - (items[0].y_pos-1))*(items[i].y_pos - (items[0].y_pos-1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
+                    }
+                    if(movement_check == 1)items[0].y_pos -=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x02 :    
+                     {
+                    for(int i =1; i< elements;i++) 
+                    {
+                    if(items[i].health == DEAD) continue;
+                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-1))*(items[i].x_pos - (items[0].x_pos-1))) > 2);
+                    }
+                    if(movement_check == 1)items[0].x_pos -=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x04 :    
+                     {
+                    for(int i =1; i< elements;i++)
+                    {
+                    if(items[i].health == DEAD) continue;
+                    movement_check *=(((items[i].y_pos - (items[0].y_pos+1))*(items[i].y_pos - (items[0].y_pos+1)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) > 2);
+                    }
+                    if(movement_check == 1)items[0].y_pos +=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x08 :    
+                     {
+                    for(int i =1; i< elements;i++)
+                    {
+                    if(items[i].health == DEAD) continue; 
+                    movement_check *=(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+1))*(items[i].x_pos - (items[0].x_pos+1))) > 2);
+                    }
+                    if(movement_check == 1)items[0].x_pos +=1;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    break;
+                    }
+               case 0x10 :
+                    {                    
+                    items[0].direction = NORTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;   
+                    };break;
+               case 0x20 :
+                    {                    
+                    items[0].direction = WEST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                         
+                    };break;
+               case 0x40 :
+                    {                    
+                    items[0].direction = SOUTH;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    };break;
+               case 0x80 :
+                    {                    
+                    items[0].direction = EAST;
+                    items[0].action = IDLE;
+                    attack_timer = 0;
+                    just_hit = 0;
+                    info_graphics.checked = 1;
+                    };break;
+               }
+*/
