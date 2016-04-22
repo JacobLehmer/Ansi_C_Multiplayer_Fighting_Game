@@ -4,7 +4,7 @@
 
 CC= gcc
 CFLAGS = -lpthread
-TARGET = Source/game_sync.c Source/graphics.c Source/main.c Source/user_input.c
+TARGET = Source/game_sync.c Source/graphics.c Source/main.c Source/user_input.c Source/communications.c
 OUT = ANSI_FIGHTER
 
 all: $(OUT)

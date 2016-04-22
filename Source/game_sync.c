@@ -11,7 +11,7 @@ unsigned int wait_time = 1000000/tps;
 
 while(killall != 1)
      {
-     game_sync *= -1;
+     server_game_sync *= -1;
      usleep(wait_time);
      }
 }

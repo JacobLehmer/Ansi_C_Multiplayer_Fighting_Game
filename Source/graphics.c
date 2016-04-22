@@ -12,13 +12,13 @@ void * graphics_handler(void * _thread_info)
      unsigned int scrn_col = w.ws_col;
      unsigned int scrn_row = w.ws_row;
      long int frames = 0;
-     int sync_check = game_sync;
+     int sync_check = client_game_sync;
      int ref_x = _info->in_game_objects[_info->player_index].x_pos;
      int ref_y = _info->in_game_objects[_info->player_index].y_pos;
      printf("%d,%d\n",ref_x,ref_y);
      while(killall != -1)
           {
-          if(sync_check != game_sync)
+          if(sync_check != client_game_sync)
                {
                if(_info->checked != 0)
                     {
@@ -27,7 +27,7 @@ void * graphics_handler(void * _thread_info)
                     
                     draw_screen(_info,ref_x,ref_y,scrn_col,scrn_row);
                     _info->checked = 0;
-                    sync_check = game_sync;
+                    sync_check = client_game_sync;
                     }
                }
           else

@@ -9,45 +9,41 @@ int main(int argc, char ** argv)
 
 srand(time(NULL));
 killall =0;
-game_sync = -1;
+server_game_sync = -1;
+client_game_sync = -1;
 
 
 struct termios new_t,old_t;
 disable_echo(&new_t,&old_t);
      
-     //TODO need to add another thread for communication
-     //TODO Need to add in the functionality to make the host and client different
-     //needs to decide connection or host before moving on
-     ////Assuming host and proceeding with moving things around and building code
      
      settings game_settings = parse_command_line_options(argc,argv);
      
-     //temp
-     pthread_t communication_thread;
-     //temp
-     
-     pthread_t timer_thread;
+
+     pthread_t communication_thread;     
+
      pthread_t graphics_thread;
      pthread_t ui_thread;
      
-     uint8_t tps = 10; //goes to communications
-
-     
-     //object * items = initialize_map(&elements, "map"); //goes to communications, or keep like this and have the loading
-     
-     //communication_controls info_communicaiton =
-     //{
-     //.port = 0;
-     //.map_filename = "map";
-     //};
-     
-     graphics_threadinfo info_graphics =
+     if(game_settings.is_host == 1)
      {
-     .checked = 1,
-     .player_index = 0,
-     .size = elements,
-     .in_game_objects = items
-     };
+          pthread_t timer_thread;
+          uint8_t tps = game_settings.fps;
+          
+          if(pthread_create(&communication_thread,NULL, server_controls,(void*)&game_settings) < 0)
+          {
+          perror("Server Thread Creation Failure");
+          return 1;
+          }
+          
+
+          if(pthread_create(&timer_thread,NULL,game_timer,(void*)&tps ) <0)
+          {
+          perror("Timer Thread Creation Failure");
+          return 1;
+          }
+     }
+          
      
      user_controls info_controls =
      {
@@ -58,26 +54,6 @@ disable_echo(&new_t,&old_t);
      
      signal(SIGINT,control_c_catch);
      
-     //temp
-     if(pthread_create(&communication_thread,NULL, server_controls,(void*)&game_settings) < 0)
-     {
-     perror("Server Thread Creation Failure");
-     return 1;
-     }
-     //temp
-     
-     
-     if(pthread_create(&timer_thread,NULL,game_timer,(void*)&tps ) <0)
-     {
-     perror("Timer Thread Creation Failure");
-     return 1;
-     }
-     
-     if(pthread_create(&graphics_thread,NULL,graphics_handler,(void*)&info_graphics) < 0)
-     {
-     perror("Graphics Thread Creation Failure");
-     return 1;
-     }
      
      if(pthread_create(&ui_thread,NULL,handle_user_controls,(void*)&info_controls) < 0)
      {
@@ -85,7 +61,7 @@ disable_echo(&new_t,&old_t);
      return 1;
      }
      
-     //TODO contain this in arbitrary client protocol
+     
      int socket = -1;
      if(game_settings.is_host == 0)
      {
@@ -94,13 +70,34 @@ disable_echo(&new_t,&old_t);
           {
                perror("Connection Error");
                return 1;
-          } 
+          }
+          if(pthread_create(&communication_thread,NULL, client_controls,(void*)&socket) < 0)
+          {
+          perror("Server Thread Creation Failure");
+          return 1;
+          }
+           
      }
      
      startup_packet game_info = get_startup_packet(game_settings.is_host, socket);
      object * items = get_object_list_from_server(game_settings.is_host, socket);
      
-     int timer_sync = game_sync;
+     
+     graphics_threadinfo info_graphics =
+     {
+     .checked = 1,
+     .player_index = 0,
+     .size = game_info.number_of_elements,
+     .in_game_objects = items
+     };
+     
+     if(pthread_create(&graphics_thread,NULL,graphics_handler,(void*)&info_graphics) < 0)
+     {
+     perror("Graphics Thread Creation Failure");
+     return 1;
+     }
+     
+     int timer_sync = client_game_sync;
      int attack_timer = 0;
      int just_hit = 0;
      int movement_check = 1;
@@ -109,12 +106,13 @@ disable_echo(&new_t,&old_t);
 
      int player_index = game_info.player_index;
      
+     
      while(killall != -1)
      {
-          if(timer_sync != game_sync && items[0].action == ATTACKING)
+          if(timer_sync != client_game_sync && items[0].action == ATTACKING)
           {
           attack_timer ++;
-          timer_sync = game_sync;
+          timer_sync = client_game_sync;
           }
      
           if(info_controls.checked != 1)
@@ -138,77 +136,19 @@ disable_echo(&new_t,&old_t);
           info_graphics.checked = 1;
           }
           
-          send_player_state(game_settings.is_host,items[player_index]);
+          send_player_state(game_settings.is_host,socket,items[player_index]);
           update_player_locations(game_settings.is_host,socket,items,game_info);
           
-          //TODO this part needs to be done by the server
           
           if(attack_timer ==1 && just_hit == 0)
           {
           just_hit = 1;
-          switch(items[0].direction)
-               {
-                case NORTH:
-                    {
-                    for(int i =1; i< elements;i++) 
-                         {
-                         if(items[i].health <= DEAD) continue;
-                         if(((items[i].y_pos - (items[0].y_pos-2))*(items[i].y_pos - (items[0].y_pos-2)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) <= 2)
-                              {
-                              if(items[i].health < items[0].damage) items[i].health =DEAD;
-                              else items[i].health -= items[0].damage; 
-                              }
-                         }
-                    };break; 
-               case EAST:
-                    {
-                    for(int i =1; i< elements;i++) 
-                         {
-                         if(items[i].health <= DEAD) continue;
-                         if(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos+2))*(items[i].x_pos - (items[0].x_pos+2))) <= 2)
-                              {
-                              if(items[i].health < items[0].damage) items[i].health =DEAD;
-                              else items[i].health -= items[0].damage; 
-                              }
-                         }
-                    };break; 
-               
-               case SOUTH:
-                    {
-                    for(int i =1; i< elements;i++) 
-                         {
-                         if(items[i].health <= DEAD) continue;
-                         if(((items[i].y_pos - (items[0].y_pos+2))*(items[i].y_pos - (items[0].y_pos+2)) + (items[i].x_pos - items[0].x_pos)*(items[i].x_pos - items[0].x_pos)) <=2)
-                              {
-                              if(items[i].health < items[0].damage) items[i].health =DEAD;
-                              else items[i].health -= items[0].damage; 
-                              }
-                         }
-                    };break;
-               case WEST:
-                    {
-                    for(int i =1; i< elements;i++) 
-                         {
-                         if(items[i].health <= DEAD) continue;
-                         if(((items[i].y_pos - (items[0].y_pos))*(items[i].y_pos - (items[0].y_pos)) + (items[i].x_pos - (items[0].x_pos-2))*(items[i].x_pos - (items[0].x_pos-2))) <= 2)
-                              {
-                              if(items[i].health < items[0].damage) items[i].health =DEAD;
-                              else items[i].health -= items[0].damage; 
-                              }
-                         }
-                    };break;
-                    
-               }
           }
           
           
      usleep(1000);
      }
      
-     //Below this is fine
-     
-     free(items);
-
 reenable_echo(&old_t);
 }
 
@@ -241,69 +181,6 @@ void reenable_echo(struct termios * old_t)
 void control_c_catch(int catch)
 {
 killall = -1;
-}
-
-//=========-------------
-//JPL 3/16/16 this is the initialization method
-//NOTE: This is currently hardcoded and needs to be rethought
-void initialize_items(object * _items)
-{
-_items[0] = (object)
-     {
-     .type = PLAYER,
-     .color = GREEN,
-     .direction = NORTH,
-     .action = IDLE,
-     .x_pos = 3,
-     .y_pos = 0,
-     .health = 100,
-     .damage = 50
-     };
-     
-_items[1] = (object)
-     {
-     .type = BLOCK,
-     .color = BLUE,
-     .x_pos = 10,
-     .y_pos = 0,
-     .health = INVINCIBLE
-     };
-     
-_items[2] = (object)
-     {
-     .type = BLOCK,
-     .color = BLUE,
-     .x_pos = -10,
-     .y_pos = 0,
-     .health = 100
-     };
-     
-_items[3] = (object)
-     {
-     .type = BLOCK,
-     .color = BLUE,
-     .x_pos = 0,
-     .y_pos = 10,
-     .health = INVINCIBLE
-     };
-     
-_items[4] = (object)
-     {
-     .type = BLOCK,
-     .color = BLUE,
-     .x_pos = 0,
-     .y_pos = -10,
-     .health = INVINCIBLE
-     };
-_items[5] = (object)
-     {
-     .type = BLOCK,
-     .color = BLUE,
-     .x_pos = 0,
-     .y_pos = 0,
-     .health = INVINCIBLE
-     };
-
 }
 
 //=========-------------
@@ -441,167 +318,6 @@ object * initialize_map(int * size, char * filename, int number_of_players)
      return return_ptr;
      
 }
-/*
-//=========-------------
-//JPL 3/18/16 this is the method that will build the collision detection system
-collision_detection_storage * build_collision_detection_storage(object * items, int size)
-{
-collision_detection_storage * game_map = malloc(sizeof(collision_detection_storage));
-
-//this part sets the bounds for the two arrays
-int size_of_x = 0; //this corresponds to the total number of unique x positions
-int * temp_x_array = malloc(sizeof(int)*size); //these two arrays are parallel, this will contain all of the unique x positions in the game map
-int * temp_y_array = malloc(sizeof(int)*size); //this corresponds to the number of extra y entries associated with the x value in the array
-int position;
-for(int i =0;i< size; i++)
-     {
-     position = binary_search(temp_x_array,size,items[i].x_pos);
-     if(position == -1) 
-          {
-          size_of_x++;
-          temp_x_array = insert_in_order(temp_x_array,size_of_x,size,items[i].x_pos);
-          }
-     else
-          {
-          temp_y_array[position] ++;
-          }
-     }
-     
-//this will build the actual ragged array 
-game_map->in_game_objects = malloc(sizeof(object *)*size_of_x);
-
-game_map->number_of_rows = size_of_x;
-
-for(int i = 0;i< size_of_x;i++)
-     {
-     game_map->in_game_objects[i] = malloc(sizeof(x_case));
-     game_map->in_game_objects[i].x = temp_x_array[i];
-     }
-     
-     //this will install all of the actual objects and the y values for the objects
-     
-for(int i = 0;i< size;i++)
-     {
-     int obj_position = binary_search_map(game_map.in_game_objects, size_of_x,items[i].x_pos);
-     game_map->in_game_objects[obj_position].number_of_ys = temp_y_array[obj_position] + 1;
-     //need another binary search to traverse through the various levels
-     }
-
-}
-*/
-//=========-------------
-//JPL 3/24/16 This is a nice binary search
-int binary_search(int * array, int array_size, int item)
-{
-
-int search_length = array_size -1;
-search_length ++;
-search_length /=2;
-int current_index = search_length;
-search_length ++;
-search_length /=2;
-while(1)
-     {
-     if(item > array[current_index]) current_index += search_length;
-     else if(item < array[current_index]) current_index -= search_length;
-     else break;
-
-     if(current_index < 0 || current_index > array_size-1 ) return -1;
-     search_length ++;
-     search_length  /= 2;
-     }
-
-     return current_index;
-}
-
-//=========-------------
-//JPL 3/24/16 This is a binary search that accepts an initial and final index
-int binary_search_init_pos(int * array, int start, int end, int item)
-{
-int array_size = (end - start);
-int search_length = (end - start) ;
-search_length ++;
-search_length /=2;
-int current_index = search_length + start;
-search_length ++;
-search_length /=2;
-while(1)
-     {
-     if(item > array[current_index]) current_index += search_length;
-     else if(item < array[current_index]) current_index -= search_length;
-     else break;
-
-     if(current_index < 0 || current_index > array_size ) return -1;
-     search_length ++;
-     search_length  /= 2;
-     }
-
-     return current_index;
-}
-
-//JPL 3/24/16 This is a adjacency binary search that will return a position that the current location is bigger and the previous location is smaller
-//returns -1 if element is in array
-int adjacency_binary_search(int * array, int start, int end, int item)
-{
-int array_size = (end - start);
-int search_length = (end - start) ;
-search_length ++;
-search_length /=2;
-int current_index = search_length + start;
-if((array[current_index-1] < item && array[current_index] > item)) return current_index;
-search_length ++;
-search_length /=2;
-
-while(1)
-     {
-     if(item > array[current_index] && current_index != array_size) current_index += search_length;
-     else if(item < array[current_index - 1] && current_index != 0) current_index -= search_length;
-     else break;
-     
-     if(item == array[current_index-1]) return -1;
-     search_length ++;
-     search_length  /= 2;
-     }
-     return current_index;
-}
-/*
-//JPL 3/24/16 This is a binary search to traverse the two dimensional array 
-int binary_search_map(x_case * game_map, int size_of_x, int value)
-{
-int search_length = size_of_x -1;
-search_length ++;
-search_length /=2;
-int current_index = search_length;
-search_length ++;
-search_length /=2;
-while(1)
-     {
-     if(value > game_map[current_index].x) current_index += search_length;
-     else if(value < game_map[current_index].x) current_index -= search_length;
-     else break;
-     
-     if(search_length == 1) return -1;
-     if(search_length == 0) return -1;
-     if(current_index < 0 || current_index > size_of_x-1 ) return -1;
-     search_length ++;
-     search_length  /= 2;
-     }
-
-     return current_index;
-}
-*/
-//=========-------------
-//JPL 3/24/16 This is a very nice copy and double method for pointer array expansion
-void * copy_and_double(void * to_copy,int item_size, int array_size)
-{
-unsigned char * return_pointer = malloc(item_size*array_size*2);
-
-for(int i = 0; i< array_size;i++)
-     {
-     return_pointer[i*item_size] = ((unsigned char*)to_copy)[i*item_size];
-     }
-return (void *) return_pointer;
-}
 
 //=========-------------
 //JPL 4/13/16 This is the Method that will find which of the dev nodes that will correspond to the currently used device node
@@ -661,19 +377,7 @@ char * find_used_device()
      free(event_files);
      
 
-     /*Code example for the usage of the scandir function
-      if (n < 0)
-          perror("scandir");
-      else {
-          while (n--) {
-              printf("%s\n", namelist[n]->d_name);
-              free(namelist[n]);
-          }
-          free(namelist);
-      }
-      */
      
-     printf("%s",return_file);
      return return_file;
 }
 //=========-------------
@@ -725,35 +429,36 @@ int update_player(unsigned char direction, int index_of_player,object * items, i
 //=========-------------
 settings parse_command_line_options(int argc, char ** argv)
 {
-     settings inital_settings;
-     //for(int i =1;i< argc;i++)
-     //{
-     
-     //}
+     settings initial_settings;
      initial_settings.is_host = 1;
-     initial_settings.port = -1;
      initial_settings.number_of_players = 1;
      initial_settings.map_filename = "map";
+     initial_settings.fps = 10;
      
-     return intitial_settings;
-}
-
-/*
-//=========-------------
-//JPL 3/24/16 This is the insert in order function
-int * insert_in_order(int * array,int current_array_size, int max_array_size, int value)
-{
-printf("insert_value:%d\n",value);
-
-if(current_array_size >= max_array_size) array = copy_and_double(array,sizeof(int),current_array_size);
-
-int insert_position = adjacency_binary_search(array, 0,current_array_size,value);
-if(insert_position == -1) return NULL;
-for(int i =0; i < (current_array_size - insert_position); i++)
+     for(int i =1;i< argc;i++)
      {
-     array[(current_array_size-i)] = array[(current_array_size-1-i)];
+          for(int j=0; j< 2;j++)
+          {
+               if(j == 0)
+               {
+                    if(argv[i][j] != '-')
+                         {
+                         perror("Command Line Format Failure: Dash Needed");
+                         }
+               }
+          switch(argv[i][j])
+               {
+               case 'h': initial_settings.is_host = 1;break;
+               case 'c': initial_settings.is_host = 0;break;
+               case 'p': initial_settings.port = (argv[i]+j+2);break;
+               case 'u': initial_settings.number_of_players = atoi((argv[i]+j+2));break;
+               case 's': initial_settings.fps = atoi((argv[i]+j+2));break;
+               case 'a': initial_settings.server_address = (argv[i]+j+2);break;
+               case 'm': initial_settings.map_filename = (argv[i]+j+2);break;
+               }
+          }
      }
-     array[insert_position] = value;
-     return array;
-}*/
+
+     return initial_settings;
+}
 
