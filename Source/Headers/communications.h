@@ -5,10 +5,16 @@
 #define comms_H
 
 //These pieces of data are for the host of the server to be able to connect withut having to deal with connecting to itself
-object * host_items;
+object * _items;
 //int check_update;
 
-startup_packet * host_startup_packet;
+startup_packet * _startup_packet;
+
+object_packet * _sending_packet;
+
+int _items_not_ready;
+
+int _send_player_state;
 
 //JPL 4/18/16 This is the main server loop
 //This will be repsonsible for handling collision gemotery and relaying the timesync 
@@ -19,16 +25,13 @@ void * client_controls(void * _thread_info);
 
 //JPL 4/22/16 This will create the server and wait until the specified number of players have connected and then
 //return the array of connections
-communication_controls * wait_for_player_connections(int number_of_players, int port);
-
-//JPL 4/18/16 This will initialize the server
-int initailize_server(int port);
+communication_controls * wait_for_player_connections(int number_of_players, char * port);
 
 //JPL 4/18/16 This will send the initial data packet to all of the clients
-void send_data_packet(object * items, communication_controls * connections, int number_of_players);
+void send_startup_packets( communication_controls * connections,int number_of_game_elements, int number_of_players);
 
 //JPL 4/18/16 This will send the list of objects in the game
-void send_all_data_packets(object * items, communication_controls * connections, int number_of_players);
+void send_all_data_packets(object * items, communication_controls * connections,int number_of_game_elements, int number_of_players);
 
 //JPL 4/18/16 This will send all of the updated player locations
 void send_player_locations(object * items, communication_controls * connections, int number_of_players);
@@ -37,7 +40,7 @@ void send_player_locations(object * items, communication_controls * connections,
 void wait_for_client_update(object * items, communication_controls * connections, int sync_check);
 
 //JPL 4/20/16 This will connect to the server returning the connected socket on sucess
-int connect_to_server(char * address, int port);
+int connect_to_server(char * address, char * port);
 
 //JPL 4/20/16 This will recieve the initial data packet
 startup_packet get_startup_packet(int is_host, int socket);
