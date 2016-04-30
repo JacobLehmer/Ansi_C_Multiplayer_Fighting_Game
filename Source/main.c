@@ -73,7 +73,7 @@ disable_echo(&new_t,&old_t);
           }
           if(pthread_create(&communication_thread,NULL, client_controls,(void*)&socket) < 0)
           {
-          perror("Server Thread Creation Failure");
+          perror("Client Thread Creation Failure");
           return 1;
           }
            
@@ -82,6 +82,7 @@ disable_echo(&new_t,&old_t);
      startup_packet game_info = get_startup_packet(game_settings.is_host, socket);
      object * items = get_object_list_from_server(game_settings.is_host, socket);
      
+    
      
      graphics_threadinfo info_graphics =
      {

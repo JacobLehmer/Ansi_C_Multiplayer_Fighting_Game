@@ -136,7 +136,7 @@ void * client_controls(void * _thread_info)
 communication_controls * wait_for_player_connections(int number_of_players, char * port)
 {
      struct sockaddr_in server,client;
-     communication_controls * connections = malloc(number_of_players*sizeof(communication_controls) - 1); //minus one because the host does not need one
+     communication_controls * connections = malloc(number_of_players*sizeof(communication_controls) - sizeof(communication_controls)); //minus one because the host does not need one
      int socket_desc;
      int c; //no clue what this does
      socket_desc = socket(AF_INET, SOCK_STREAM, 0);
@@ -163,6 +163,7 @@ communication_controls * wait_for_player_connections(int number_of_players, char
      
      for(int i = 1;i< number_of_players;i++)
      {
+        printf("Waiting For Connections\n");
           connections[i-1].index_of_player = i;
           connections[i-1].socket = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&c);
      }
@@ -174,6 +175,7 @@ communication_controls * wait_for_player_connections(int number_of_players, char
 //JPL 4/22/16 This is the all important connect to server method, returning the socket of the connection 
 int connect_to_server(char * address, char * port)
      {
+
 
      int socket_desc =0;
      socket_desc = socket(AF_INET , SOCK_STREAM , 0);
