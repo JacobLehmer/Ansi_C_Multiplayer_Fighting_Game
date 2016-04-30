@@ -8,7 +8,7 @@
 object * _items;
 //int check_update;
 
-startup_packet * _startup_packet;
+startup_packet _startup_packet;
 
 object_packet * _sending_packet;
 

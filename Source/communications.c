@@ -91,6 +91,7 @@ void * server_controls(void * _thread_info)
                }
           sync_check = server_game_sync;
           _items = items;
+          _send_player_state = 0;
           //TODO need to send the updated player locations to all of the clients
           //send_payer_locations();    
           }
@@ -107,11 +108,11 @@ void * client_controls(void * _thread_info)
      int socket = *((int *) _thread_info);
      //TODO need to write this, functionality should be very similar to the behavior that the host and the server has with each other
      
-     recv(socket, _startup_packet , sizeof(_startup_packet) , 0);
+     recv(socket, &_startup_packet , sizeof(_startup_packet) , 0);
      
-     _items = malloc(sizeof(object)*(_startup_packet->number_of_elements));
+     _items = malloc(sizeof(object)*(_startup_packet.number_of_elements));
      
-     for(int i =0;i< _startup_packet->number_of_elements;i++)
+     for(int i =0;i< _startup_packet.number_of_elements;i++)
      {
      recv(socket, &(_items[i]), sizeof(object),0); //This may not work, but it may be possible to simply read the entire array of items
      }
@@ -206,7 +207,7 @@ void send_startup_packets( communication_controls * connections,int number_of_ga
           .other_players = number_of_players
      };
 
-     _startup_packet = &host_startup;
+     _startup_packet = host_startup;
      
      for(int i =1; i< number_of_players; i++)
         {
@@ -237,18 +238,18 @@ void send_all_data_packets(object * items, communication_controls * connections,
 startup_packet get_startup_packet(int is_host, int socket)
      {
 
-     while(_startup_packet == NULL)
+     while(_startup_packet.number_of_elements == 0&& killall != -1)
      {
-     usleep(100);
+     usleep(1000);
      }
-     return *_startup_packet;
+     return _startup_packet;
      
      }
      
 //JPL 4/22/16 This will recieve the initial object list from the server
 object * get_object_list_from_server(int is_host, int socket)
      {
-     while(_items_not_ready ==1)
+     while(_items_not_ready ==1&& killall != -1)
      {
      usleep(1000);
      }
@@ -258,7 +259,7 @@ object * get_object_list_from_server(int is_host, int socket)
 //JPL 4/22/16 This will update the player locations in the current game
 void update_player_locations(int is_host, int socket, object * items, startup_packet game_info)
      {
-     while(client_game_sync == server_game_sync)
+     while(client_game_sync == server_game_sync && killall != -1)
      {
      usleep(1000);
      }
@@ -268,7 +269,7 @@ void update_player_locations(int is_host, int socket, object * items, startup_pa
 //JPL 4/22/16 This will send the state of the player to the server
 void send_player_state(int is_host, int socket, object player)
      {
-     while(_send_player_state == 1)
+     while(_send_player_state == 1&& killall != -1)
      {
      usleep(1000);
      }
