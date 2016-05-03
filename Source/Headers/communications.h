@@ -37,7 +37,7 @@ void send_all_data_packets(object * items, communication_controls * connections,
 void send_player_locations(object * items, communication_controls * connections, int number_of_players);
 
 //JPL 4/22/16 This will wait for all of the clients to send their updated locations to the server
-void wait_for_client_update(object * items, communication_controls * connections, int sync_check);
+void wait_for_client_update(object * items,communication_controls * connections,int number_of_players);
 
 //JPL 4/20/16 This will connect to the server returning the connected socket on sucess
 int connect_to_server(char * address, char * port);
@@ -53,5 +53,6 @@ void update_player_locations(int is_host, int socket, object * items, startup_pa
 
 //JPL 4/20/16 This will send the player state to the server
 void send_player_state(int is_host, int socket, object player);
+
 
 #endif

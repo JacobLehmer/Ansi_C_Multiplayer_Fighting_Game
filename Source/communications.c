@@ -25,9 +25,8 @@ void * server_controls(void * _thread_info)
      
      while(killall != -1)
      {
-     //TODO wait for clients to update their character to the server
-     //Give up on waiting after the specified time tick
-     //wait_for_client_update();
+     //TODO Give up on waiting after the specified time tick
+          wait_for_client_update(items,communication_list,server_settings->number_of_players);
           if(sync_check != server_game_sync/*or all clients have updated*/)
           {
                for(int j=0;j< server_settings->number_of_players;j++)
@@ -89,11 +88,15 @@ void * server_controls(void * _thread_info)
                          }
                     }
                }
-          sync_check = server_game_sync;
+          
           _items = items;
           _send_player_state = 0;
-          //TODO need to send the updated player locations to all of the clients
-          //send_payer_locations();    
+
+          for(int i =1;i< server_settings->number_of_players;i++) write(communication_list[i-1].socket, &server_game_sync, sizeof(int));
+          
+          sync_check = server_game_sync;
+
+          send_player_locations(items, communication_list, server_settings->number_of_players);    
           }
           usleep(5000);
      }
@@ -106,7 +109,6 @@ void * client_controls(void * _thread_info)
 {
      _items_not_ready = 1;
      int socket = *((int *) _thread_info);
-     //TODO need to write this, functionality should be very similar to the behavior that the host and the server has with each other
      
      recv(socket, &_startup_packet , sizeof(_startup_packet) , 0);
      
@@ -114,19 +116,28 @@ void * client_controls(void * _thread_info)
      
      for(int i =0;i< _startup_packet.number_of_elements;i++)
      {
-     recv(socket, &(_items[i]), sizeof(object),0); //This may not work, but it may be possible to simply read the entire array of items
+     recv(socket, &(_items[i]), sizeof(object),0); 
      }
      _items_not_ready = 0;
-     //TODO need to wait for the startup packet
-     //TODO need to wait for the entire map
-     
-     //while(killall != -1)
-     //{
-          //TODO need to wait for the time sync
-          //TODO need to read the player objects and update the items
-          //TODO set the server_game_sync
-          //TODO need to wait for the send player state flag then send the player state
-     //}
+
+     while(killall != -1)
+     {
+          if(_send_player_state == 1)
+          {
+               write(socket, &(_items[_startup_packet.player_index]), sizeof(object));
+               _send_player_state = 0;
+          }
+
+          recv(socket, &(server_game_sync), sizeof(int),0); 
+          
+          for(int i=0;i< _startup_packet.other_players;i++)
+          {
+               recv(socket, &(_items[i]), sizeof(object),0);
+          }     
+          
+          client_game_sync = server_game_sync;
+
+     }
      close(socket);
      
                     
@@ -170,6 +181,14 @@ communication_controls * wait_for_player_connections(int number_of_players, char
      
      return connections;
      
+}
+//JPL 5/3/16 This will wait for all of the players to update to the servers
+void wait_for_client_update(object * items,communication_controls * connections, int number_of_players)
+{
+     for(int i =1;i< number_of_players;i++) //This may need to be updated with pollfds that will allow for an asynchronous updating
+     {
+          recv(connections[i-1].socket, &(items[connections[i-1].index_of_player]), sizeof(object),0); 
+     }
 }
 
 //JPL 4/22/16 This is the all important connect to server method, returning the socket of the connection 
@@ -231,6 +250,18 @@ void send_all_data_packets(object * items, communication_controls * connections,
                for(int j=1; j< number_of_players;j++)
                {
                  write(connections[j-1].socket, &(items[i]), sizeof(object));   
+               }
+          }
+     }
+    
+//JPL 5/3/16 This will send all of the player positions
+void send_player_locations(object * items, communication_controls * connections, int number_of_players)
+     {
+          for(int i = 1;i< number_of_players;i++)
+          {
+               for(int j = 0;j< number_of_players;j++)
+               {
+                    write(connections[i-1].socket, &(items[j]), sizeof(object));
                }
           }
      }
