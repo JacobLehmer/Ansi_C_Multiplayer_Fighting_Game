@@ -26,9 +26,9 @@ void * server_controls(void * _thread_info)
      while(killall != -1)
      {
      //TODO Give up on waiting after the specified time tick
+
           wait_for_client_update(items,communication_list,server_settings->number_of_players);
-          if(sync_check != server_game_sync/*or all clients have updated*/)
-          {
+
                for(int j=0;j< server_settings->number_of_players;j++)
                {
                     if(items[j].action == ATTACKING)
@@ -88,17 +88,25 @@ void * server_controls(void * _thread_info)
                          }
                     }
                }
+
+          while(sync_check == server_game_sync && killall != -1)
+          {
+               usleep(1000);
+          }
           
+          //if(sync_check != server_game_sync)
+          //{        
           _items = items;
           _send_player_state = 0;
+
 
           for(int i =1;i< server_settings->number_of_players;i++) write(communication_list[i-1].socket, &server_game_sync, sizeof(int));
           
           sync_check = server_game_sync;
 
           send_player_locations(items, communication_list, server_settings->number_of_players);    
-          }
-          usleep(5000);
+          //}
+          //usleep(5000);
      }
      free(items);
      free(communication_list);
@@ -107,33 +115,39 @@ void * server_controls(void * _thread_info)
 //JPL 4/22/16 This is the client control loop that is handling talking to the server
 void * client_controls(void * _thread_info)
 {
+     _send_player_state = 1;
      _items_not_ready = 1;
-     int socket = *((int *) _thread_info);
-     
+     int socket = *((int *) _thread_info);    
+
      recv(socket, &_startup_packet , sizeof(_startup_packet) , 0);
+
+
+     _items = malloc(sizeof(object)*(_startup_packet.number_of_elements)); 
      
-     _items = malloc(sizeof(object)*(_startup_packet.number_of_elements));
-     
+
      for(int i =0;i< _startup_packet.number_of_elements;i++)
      {
      recv(socket, &(_items[i]), sizeof(object),0); 
      }
+
      _items_not_ready = 0;
 
      while(killall != -1)
      {
+
           if(_send_player_state == 1)
           {
+               printf("Sent:%d\n",_items[_startup_packet.player_index].direction);
                write(socket, &(_items[_startup_packet.player_index]), sizeof(object));
                _send_player_state = 0;
           }
 
           recv(socket, &(server_game_sync), sizeof(int),0); 
-          
+
           for(int i=0;i< _startup_packet.other_players;i++)
           {
                recv(socket, &(_items[i]), sizeof(object),0);
-          }     
+          } 
           
           client_game_sync = server_game_sync;
 
@@ -177,6 +191,7 @@ communication_controls * wait_for_player_connections(int number_of_players, char
         printf("Waiting For Connections\n");
           connections[i-1].index_of_player = i;
           connections[i-1].socket = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&c);
+
      }
      
      return connections;
@@ -185,9 +200,12 @@ communication_controls * wait_for_player_connections(int number_of_players, char
 //JPL 5/3/16 This will wait for all of the players to update to the servers
 void wait_for_client_update(object * items,communication_controls * connections, int number_of_players)
 {
+     object read_in;
      for(int i =1;i< number_of_players;i++) //This may need to be updated with pollfds that will allow for an asynchronous updating
      {
-          recv(connections[i-1].socket, &(items[connections[i-1].index_of_player]), sizeof(object),0); 
+          recv(connections[i-1].socket, &(read_in), sizeof(object),0);
+                         printf("recieved:%d\n",read_in.direction);
+          items[connections[i-1].index_of_player] = read_in;
      }
 }
 
@@ -232,13 +250,13 @@ void send_startup_packets( communication_controls * connections,int number_of_ga
      
      for(int i =1; i< number_of_players; i++)
         {
-        startup_packet startup =
-        {
-          .number_of_elements = number_of_game_elements,
-          .player_index = connections[i-1].index_of_player,
-          .other_players = number_of_players
-        };
-        write(connections[i-1].socket, (&startup), sizeof(startup));
+             startup_packet startup =
+             {
+               .number_of_elements = number_of_game_elements,
+               .player_index = connections[i-1].index_of_player,
+               .other_players = number_of_players
+             };
+             write(connections[i-1].socket, (&startup), sizeof(startup));
         }
      }
      
@@ -297,6 +315,7 @@ void update_player_locations(int is_host, int socket, object * items, startup_pa
      usleep(1000);
      }
      client_game_sync = server_game_sync;
+
      }
 
 //JPL 4/22/16 This will send the state of the player to the server
@@ -306,6 +325,10 @@ void send_player_state(int is_host, int socket, object player)
      {
      usleep(1000);
      }
+     printf("::%d\n", player.direction);
+     _items[_startup_packet.player_index] = player;
+     printf("update attempt:%d\n",_items[_startup_packet.player_index].direction);
      _send_player_state = 1; //one means to send, zero means been sent
+          printf("update attempt:%d\n",_items[_startup_packet.player_index].direction);
      }
 

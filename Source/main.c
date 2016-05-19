@@ -87,7 +87,7 @@ disable_echo(&new_t,&old_t);
      graphics_threadinfo info_graphics =
      {
      .checked = 1,
-     .player_index = 0,
+     .player_index = game_info.player_index,
      .size = game_info.number_of_elements,
      .in_game_objects = items
      };
@@ -97,7 +97,7 @@ disable_echo(&new_t,&old_t);
      perror("Graphics Thread Creation Failure");
      return 1;
      }
-     
+
      int timer_sync = client_game_sync;
      int attack_timer = 0;
      int just_hit = 0;
@@ -110,7 +110,8 @@ disable_echo(&new_t,&old_t);
      
      while(killall != -1)
      {
-          if(timer_sync != client_game_sync && items[0].action == ATTACKING)
+
+          if(timer_sync != client_game_sync && items[player_index].action == ATTACKING)
           {
           attack_timer ++;
           timer_sync = client_game_sync;
@@ -125,18 +126,18 @@ disable_echo(&new_t,&old_t);
           
           if(info_controls.attack ==0x01)
                {
-               items[0].action = ATTACKING;
+               items[player_index].action = ATTACKING;
                info_graphics.checked = 1;
                }          
           
           if(attack_timer >=2)
           {
-          items[0].action = IDLE;
-          attack_timer = 0;
-          just_hit = 0;
-          info_graphics.checked = 1;
+               items[player_index].action = IDLE;
+               attack_timer = 0;
+               just_hit = 0;
+               info_graphics.checked = 1;
           }
-          
+          printf("::-::%d,%d\n",player_index,items[player_index].direction);
           send_player_state(game_settings.is_host,socket,items[player_index]);
           update_player_locations(game_settings.is_host,socket,items,game_info);
           

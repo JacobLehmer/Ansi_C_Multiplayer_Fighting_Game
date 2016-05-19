@@ -15,7 +15,7 @@ void * graphics_handler(void * _thread_info)
      int sync_check = client_game_sync;
      int ref_x = _info->in_game_objects[_info->player_index].x_pos;
      int ref_y = _info->in_game_objects[_info->player_index].y_pos;
-     printf("%d,%d\n",ref_x,ref_y);
+     //printf("%d,%d\n",ref_x,ref_y);
      while(killall != -1)
           {
           if(sync_check != client_game_sync)
